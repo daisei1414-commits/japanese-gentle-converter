@@ -539,6 +539,106 @@ document.addEventListener('DOMContentLoaded', function() {
   // Initialize default level on page load
   initializeDefaultLevel();
   
+  // Global paste function
+  async function globalPaste() {
+    try {
+      // Try to read from clipboard
+      if (navigator.clipboard && navigator.clipboard.readText) {
+        const text = await navigator.clipboard.readText();
+        inputText.value = text;
+        inputText.focus();
+        return true;
+      }
+    } catch (error) {
+      console.log('Clipboard access failed, falling back to focus method');
+    }
+    
+    // Fallback: focus input and let browser handle paste
+    inputText.focus();
+    inputText.select();
+    return false;
+  }
+
+  // Global copy function
+  async function globalCopy() {
+    if (!outputText.value) {
+      alert('変換結果がありません。先に変換を実行してください。');
+      return false;
+    }
+    
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(outputText.value);
+        showCopyFeedback();
+        return true;
+      }
+    } catch (error) {
+      console.log('Clipboard write failed, falling back to selection method');
+    }
+    
+    // Fallback: select output text
+    outputText.focus();
+    outputText.select();
+    try {
+      document.execCommand('copy');
+      showCopyFeedback();
+      return true;
+    } catch (error) {
+      alert('コピーに失敗しました。手動でコピーしてください。');
+      return false;
+    }
+  }
+
+  // Show copy feedback
+  function showCopyFeedback() {
+    // Update copy button if visible
+    if (copyBtn.style.display !== 'none') {
+      const originalText = copyBtn.textContent;
+      copyBtn.textContent = '✅ コピーしました！';
+      copyBtn.style.background = '#218838';
+      
+      setTimeout(() => {
+        copyBtn.textContent = originalText;
+        copyBtn.style.background = '#28a745';
+      }, 2000);
+    } else {
+      // Show temporary notification
+      const notification = document.createElement('div');
+      notification.textContent = '✅ 変換結果をコピーしました！';
+      notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #28a745;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        z-index: 10000;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        animation: slideIn 0.3s ease;
+      `;
+      
+      // Add animation
+      const style = document.createElement('style');
+      style.textContent = `
+        @keyframes slideIn {
+          from { transform: translateX(100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+      `;
+      document.head.appendChild(style);
+      
+      document.body.appendChild(notification);
+      
+      setTimeout(() => {
+        notification.remove();
+        style.remove();
+      }, 3000);
+    }
+  }
+
   // Global keyboard shortcuts
   document.addEventListener('keydown', function(e) {
     // Ctrl/Cmd + Enter: Convert text
@@ -547,21 +647,27 @@ document.addEventListener('DOMContentLoaded', function() {
       convertText();
     }
     
-    // Ctrl/Cmd + V: Focus input and paste (if input is not focused)
-    if (e.key === 'v' && (e.metaKey || e.ctrlKey) && document.activeElement !== inputText) {
-      e.preventDefault();
-      inputText.focus();
-      // Let browser handle the actual paste
-      setTimeout(() => {
-        // Trigger paste event if needed
-      }, 10);
+    // Ctrl/Cmd + V: Global paste to input
+    if (e.key === 'v' && (e.metaKey || e.ctrlKey)) {
+      // Only prevent default if we're not in an input field that should handle paste naturally
+      if (document.activeElement !== inputText && 
+          document.activeElement.tagName !== 'INPUT' && 
+          document.activeElement.tagName !== 'TEXTAREA') {
+        e.preventDefault();
+        globalPaste();
+      }
     }
     
-    // Ctrl/Cmd + C: Copy output text (if output has content and input is not focused)
-    if (e.key === 'c' && (e.metaKey || e.ctrlKey) && document.activeElement !== inputText && outputText.value) {
-      if (document.activeElement === outputText || !window.getSelection().toString()) {
+    // Ctrl/Cmd + C: Global copy from output
+    if (e.key === 'c' && (e.metaKey || e.ctrlKey)) {
+      // Only prevent default if we're not in a field with selected text
+      const hasSelection = window.getSelection().toString().length > 0;
+      const isInInputField = document.activeElement.tagName === 'INPUT' || 
+                           document.activeElement.tagName === 'TEXTAREA';
+      
+      if (!hasSelection && (!isInInputField || document.activeElement === outputText)) {
         e.preventDefault();
-        copyToClipboard();
+        globalCopy();
       }
     }
     
