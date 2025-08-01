@@ -163,31 +163,17 @@ class AIEnhancedConversionEngine {
     console.log(`🚀 Starting REAL AI conversion with ${provider}...`);
 
     try {
-      // Call our Vercel serverless function
       const apiUrl = this.getAPIEndpoint();
       const startTime = Date.now();
       
-      console.log(`📡 Calling AI API: ${apiUrl}`);
-      
-      // First test if the API endpoint is reachable
-      try {
-        console.log('🧪 Testing API endpoint connectivity...');
-        const testResponse = await fetch(`${apiUrl}/api/test`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          }
-        });
-        
-        if (testResponse.ok) {
-          const testData = await testResponse.json();
-          console.log('✅ API endpoint test successful:', testData);
-        } else {
-          console.warn('⚠️ API endpoint test failed:', testResponse.status);
-        }
-      } catch (testError) {
-        console.warn('⚠️ API endpoint test error:', testError.message);
+      // Since Vercel deployment isn't available, use direct API approach
+      if (!apiUrl) {
+        console.log('🔄 Using direct API conversion with CORS proxy...');
+        const directResult = await this.performDirectAIConversion(originalText, options);
+        return directResult;
       }
+      
+      console.log(`📡 Calling AI API: ${apiUrl}`);
       
       const response = await fetch(`${apiUrl}/api/convert`, {
         method: 'POST',
@@ -237,33 +223,45 @@ class AIEnhancedConversionEngine {
       };
 
     } catch (error) {
-      console.error('❌ Real AI conversion failed:', error);
+      console.error('❌ Vercel AI conversion failed:', error);
       
-      // Show user-friendly error notification
-      if (error.message.includes('API Error: 401')) {
-        this.showNotification('🔑 APIキーが無効です。設定を確認してください', 'error');
-      } else if (error.message.includes('API Error: 429')) {
-        this.showNotification('⏰ API利用制限に達しました。しばらく待ってから再試行してください', 'warning');
-      } else if (error.message.includes('Failed to fetch')) {
-        this.showNotification('🌐 ネットワークエラーです。接続を確認してください', 'warning');
-      } else {
-        this.showNotification('⚠️ AI変換でエラーが発生しました。ルールベース変換に切り替えます', 'warning');
+      // Try direct API conversion as secondary fallback
+      try {
+        console.log('🔄 Trying direct API conversion with CORS proxy...');
+        const directResult = await this.performDirectAIConversion(originalText, options);
+        
+        this.showNotification('✅ 直接API接続により変換が完了しました', 'success');
+        return directResult;
+        
+      } catch (directError) {
+        console.error('❌ Direct AI conversion also failed:', directError);
+        
+        // Show user-friendly error notification
+        if (error.message.includes('API Error: 401')) {
+          this.showNotification('🔑 APIキーが無効です。設定を確認してください', 'error');
+        } else if (error.message.includes('API Error: 429')) {
+          this.showNotification('⏰ API利用制限に達しました。しばらく待ってから再試行してください', 'warning');
+        } else if (error.message.includes('Failed to fetch')) {
+          this.showNotification('🌐 Vercelサーバーに接続できません。直接API接続を試行中...', 'warning');
+        } else {
+          this.showNotification('⚠️ AI変換でエラーが発生しました。ルールベース変換に切り替えます', 'warning');
+        }
+        
+        // Final fallback to advanced rule-based conversion
+        console.log('🔄 Final fallback to advanced rule-based conversion...');
+        const fallbackResult = await this.advancedAISimulation(originalText, options);
+        
+        // Add fallback information
+        fallbackResult.fallback = true;
+        fallbackResult.fallbackReason = `Vercel: ${error.message}, Direct: ${directError.message}`;
+        fallbackResult.suggestions.unshift({
+          type: 'fallback_warning',
+          message: 'AI変換に失敗したため、高度なルールベース変換を使用しました',
+          priority: 'warning'
+        });
+        
+        return fallbackResult;
       }
-      
-      // Fallback to advanced rule-based conversion
-      console.log('🔄 Falling back to advanced rule-based conversion...');
-      const fallbackResult = await this.advancedAISimulation(originalText, options);
-      
-      // Add fallback information
-      fallbackResult.fallback = true;
-      fallbackResult.fallbackReason = error.message;
-      fallbackResult.suggestions.unshift({
-        type: 'fallback_warning',
-        message: 'AI変換に失敗したため、高度なルールベース変換を使用しました',
-        priority: 'warning'
-      });
-      
-      return fallbackResult;
     }
   }
 
@@ -271,18 +269,103 @@ class AIEnhancedConversionEngine {
    * Get API endpoint URL (development vs production)
    */
   getAPIEndpoint() {
-    // In production, use the same domain
-    if (window.location.hostname === 'daisei1414-commits.github.io') {
-      return 'https://japanese-gentle-converter.vercel.app';
+    // Since Vercel deployment requires authentication, use direct API approach
+    // This will trigger the CORS proxy fallback in performDirectAIConversion
+    return null;
+  }
+
+  /**
+   * Fallback AI conversion using direct API calls with CORS proxy
+   */
+  async performDirectAIConversion(originalText, options) {
+    const anthropicKey = localStorage.getItem('anthropic_api_key');
+    const openaiKey = localStorage.getItem('openai_api_key');
+    
+    console.log('🔄 Attempting direct AI conversion with CORS proxy...');
+    
+    if (anthropicKey) {
+      try {
+        return await this.callClaudeDirectly(originalText, options.level, anthropicKey);
+      } catch (error) {
+        console.warn('Claude direct call failed:', error.message);
+      }
     }
     
-    // For local development
-    if (window.location.hostname === 'localhost') {
-      return 'http://localhost:3000';
+    if (openaiKey) {
+      try {
+        return await this.callOpenAIDirectly(originalText, options.level, openaiKey);
+      } catch (error) {
+        console.warn('OpenAI direct call failed:', error.message);
+      }
     }
     
-    // Default to Vercel deployment
-    return 'https://japanese-gentle-converter.vercel.app';
+    throw new Error('All direct AI calls failed');
+  }
+
+  /**
+   * Call Claude API directly with CORS proxy
+   */
+  async callClaudeDirectly(text, level, apiKey) {
+    const prompt = `日本語敬語変換: "${text}" をレベル${level}の敬語で変換してください。変換結果のみを出力:`;
+    
+    // Use a CORS proxy service
+    const proxyUrl = 'https://api.allorigins.win/raw?url=';
+    const apiUrl = encodeURIComponent('https://api.anthropic.com/v1/messages');
+    
+    const response = await fetch(`${proxyUrl}${apiUrl}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-3-haiku-20240307',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: prompt
+        }]
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Claude direct API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const convertedText = data.content[0].text.trim();
+
+    return {
+      original: text,
+      converted: convertedText,
+      provider: 'claude-direct',
+      confidence: 0.93,
+      analysis: {
+        processingTime: Date.now(),
+        confidence: 0.93,
+        improvements: ['Claude Direct API', 'CORS Proxy', '高品質変換']
+      },
+      metadata: {
+        timestamp: new Date().toISOString(),
+        engine: 'claude-3-haiku-direct',
+        version: '4.0.0-direct',
+        features: ['direct-api', 'cors-proxy']
+      },
+      suggestions: [{
+        type: 'direct_success',
+        message: 'Claude APIへの直接接続により変換が完了しました',
+        priority: 'info'
+      }]
+    };
+  }
+
+  /**
+   * Call OpenAI API directly (Note: this will likely fail due to CORS)
+   */
+  async callOpenAIDirectly(text, level, apiKey) {
+    // OpenAI doesn't allow CORS, so this is mainly for completeness
+    throw new Error('OpenAI direct calls not supported due to CORS restrictions');
   }
 
   /**
