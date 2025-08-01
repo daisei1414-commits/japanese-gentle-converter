@@ -366,49 +366,74 @@ class AIEnhancedConversionEngine {
     
     // Try multiple CORS proxy services (in order of reliability)
     const corsProxies = [
-      'https://thingproxy.freeboard.io/fetch/',
-      'https://api.codetabs.com/v1/proxy?quest=',
-      'https://cors-anywhere.herokuapp.com/',
-      'https://proxy.cors.sh/',
-      'https://corsproxy.io/?'
+      // Use allorigins with proper format for Claude
+      {
+        url: 'https://api.allorigins.win/get',
+        type: 'allorigins'
+      },
+      // Standard CORS proxies
+      {
+        url: 'https://thingproxy.freeboard.io/fetch/',
+        type: 'standard'
+      },
+      {
+        url: 'https://api.codetabs.com/v1/proxy?quest=',
+        type: 'standard'
+      },
+      {
+        url: 'https://cors-anywhere.herokuapp.com/',
+        type: 'standard'
+      },
+      {
+        url: 'https://proxy.cors.sh/',
+        type: 'standard'
+      }
     ];
     
-    for (const proxyUrl of corsProxies) {
+    for (const proxy of corsProxies) {
       try {
-        console.log(`🔄 Trying CORS proxy: ${proxyUrl}`);
+        console.log(`🔄 Trying CORS proxy: ${proxy.url} (${proxy.type})`);
         
         let requestUrl;
         let requestOptions;
         
-        if (proxyUrl.includes('allorigins')) {
-          // allorigins format (POST data in body)
-          requestUrl = `${proxyUrl}${encodeURIComponent('https://api.anthropic.com/v1/messages')}`;
-          requestOptions = {
+        if (proxy.type === 'allorigins') {
+          // Use allorigins GET method to avoid CORS preflight issues
+          const claudeRequest = {
             method: 'POST',
             headers: {
-              'Content-Type': 'application/json'
+              'Content-Type': 'application/json',
+              'x-api-key': apiKey,
+              'anthropic-version': '2023-06-01'
             },
             body: JSON.stringify({
-              url: 'https://api.anthropic.com/v1/messages',
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': apiKey,
-                'anthropic-version': '2023-06-01'
-              },
-              body: JSON.stringify({
-                model: 'claude-3-haiku-20240307',
-                max_tokens: 1000,
-                messages: [{
-                  role: 'user',
-                  content: prompt
-                }]
-              })
+              model: 'claude-3-haiku-20240307',
+              max_tokens: 1000,
+              messages: [{
+                role: 'user',
+                content: prompt
+              }]
             })
+          };
+
+          // Use allorigins GET format to avoid preflight
+          const urlParams = new URLSearchParams({
+            url: 'https://api.anthropic.com/v1/messages',
+            method: 'POST',
+            headers: JSON.stringify(claudeRequest.headers),
+            body: claudeRequest.body
+          });
+
+          requestUrl = `${proxy.url}?${urlParams.toString()}`;
+          requestOptions = {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json'
+            }
           };
         } else {
           // Standard proxy format
-          requestUrl = `${proxyUrl}https://api.anthropic.com/v1/messages`;
+          requestUrl = `${proxy.url}https://api.anthropic.com/v1/messages`;
           requestOptions = {
             method: 'POST',
             headers: {
@@ -431,14 +456,20 @@ class AIEnhancedConversionEngine {
         const response = await fetch(requestUrl, requestOptions);
 
         if (!response.ok) {
-          console.warn(`❌ Proxy ${proxyUrl} failed with status: ${response.status}`);
+          console.warn(`❌ Proxy ${proxy.url} failed with status: ${response.status}`);
           continue;
         }
 
-        const data = await response.json();
+        let data = await response.json();
+        
+        // Handle allorigins response format
+        if (proxy.type === 'allorigins' && data.contents) {
+          data = JSON.parse(data.contents);
+        }
+
         const convertedText = data.content[0].text.trim();
 
-        console.log(`✅ Successfully used proxy: ${proxyUrl}`);
+        console.log(`✅ Successfully used proxy: ${proxy.url}`);
 
         return {
           original: text,
@@ -464,7 +495,7 @@ class AIEnhancedConversionEngine {
         };
 
       } catch (error) {
-        console.warn(`❌ CORS proxy ${proxyUrl} failed:`, error.message);
+        console.warn(`❌ CORS proxy ${proxy.url} failed:`, error.message);
         continue;
       }
     }
@@ -480,45 +511,110 @@ class AIEnhancedConversionEngine {
     
     // Try CORS proxy services for OpenAI (in order of reliability)
     const corsProxies = [
-      'https://thingproxy.freeboard.io/fetch/',
-      'https://api.codetabs.com/v1/proxy?quest=',
-      'https://cors-anywhere.herokuapp.com/',
-      'https://proxy.cors.sh/',
-      'https://corsproxy.io/?'
+      // Use allorigins with proper format for OpenAI
+      {
+        url: 'https://api.allorigins.win/get',
+        type: 'allorigins'
+      },
+      // Standard CORS proxies
+      {
+        url: 'https://thingproxy.freeboard.io/fetch/',
+        type: 'standard'
+      },
+      {
+        url: 'https://api.codetabs.com/v1/proxy?quest=',
+        type: 'standard'
+      },
+      {
+        url: 'https://cors-anywhere.herokuapp.com/',
+        type: 'standard'
+      },
+      {
+        url: 'https://proxy.cors.sh/',
+        type: 'standard'
+      }
     ];
     
-    for (const proxyUrl of corsProxies) {
+    for (const proxy of corsProxies) {
       try {
-        console.log(`🔄 Trying OpenAI via CORS proxy: ${proxyUrl}`);
+        console.log(`🔄 Trying OpenAI via CORS proxy: ${proxy.url} (${proxy.type})`);
         
-        const requestUrl = `${proxyUrl}https://api.openai.com/v1/chat/completions`;
-        const response = await fetch(requestUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`,
-            'X-Requested-With': 'XMLHttpRequest'
-          },
-          body: JSON.stringify({
-            model: 'gpt-3.5-turbo',
-            messages: [{
-              role: 'user',
-              content: prompt
-            }],
-            max_tokens: 1000,
-            temperature: 0.3
-          })
-        });
+        let requestUrl;
+        let requestOptions;
+        
+        if (proxy.type === 'allorigins') {
+          // Use allorigins GET method for OpenAI to avoid CORS preflight issues
+          const openaiRequest = {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({
+              model: 'gpt-3.5-turbo',
+              messages: [{
+                role: 'user',
+                content: prompt
+              }],
+              max_tokens: 1000,
+              temperature: 0.3
+            })
+          };
+
+          // Use allorigins GET format to avoid preflight
+          const urlParams = new URLSearchParams({
+            url: 'https://api.openai.com/v1/chat/completions',
+            method: 'POST',
+            headers: JSON.stringify(openaiRequest.headers),
+            body: openaiRequest.body
+          });
+
+          requestUrl = `${proxy.url}?${urlParams.toString()}`;
+          requestOptions = {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          };
+        } else {
+          // Standard proxy format
+          requestUrl = `${proxy.url}https://api.openai.com/v1/chat/completions`;
+          requestOptions = {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${apiKey}`,
+              'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+              model: 'gpt-3.5-turbo',
+              messages: [{
+                role: 'user',
+                content: prompt
+              }],
+              max_tokens: 1000,
+              temperature: 0.3
+            })
+          };
+        }
+
+        const response = await fetch(requestUrl, requestOptions);
 
         if (!response.ok) {
-          console.warn(`❌ OpenAI proxy ${proxyUrl} failed with status: ${response.status}`);
+          console.warn(`❌ OpenAI proxy ${proxy.url} failed with status: ${response.status}`);
           continue;
         }
 
-        const data = await response.json();
+        let data = await response.json();
+        
+        // Handle allorigins response format
+        if (proxy.type === 'allorigins' && data.contents) {
+          data = JSON.parse(data.contents);
+        }
+
         const convertedText = data.choices[0].message.content.trim();
 
-        console.log(`✅ Successfully used OpenAI proxy: ${proxyUrl}`);
+        console.log(`✅ Successfully used OpenAI proxy: ${proxy.url}`);
 
         return {
           original: text,
@@ -544,7 +640,7 @@ class AIEnhancedConversionEngine {
         };
 
       } catch (error) {
-        console.warn(`❌ OpenAI proxy ${proxyUrl} failed:`, error.message);
+        console.warn(`❌ OpenAI proxy ${proxy.url} failed:`, error.message);
         continue;
       }
     }
