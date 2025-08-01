@@ -465,7 +465,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 2000);
   });
   
-  // Convert text
+  // Convert text - AI Enhanced Version
   async function convertText() {
     const text = inputText.value.trim();
     const level = parseInt(levelSlider.value);
@@ -477,9 +477,16 @@ document.addEventListener('DOMContentLoaded', function() {
     
     try {
       let result;
-      if (window.electronAPI) {
+      
+      // Use AI conversion if available
+      if (window.aiEngine && window.aiEngine.isAIEnabled) {
+        console.log('🤖 Using AI conversion...');
+        result = await window.aiEngine.convertText(text, { level: level });
+      } else if (window.electronAPI) {
+        console.log('🖥️ Using Electron conversion...');
         result = await window.electronAPI.convertText(text, level);
       } else {
+        console.log('🔄 Using fallback conversion...');
         result = await engine.convertText(text, { level: level });
       }
       
@@ -497,8 +504,18 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('分析結果:', {
           処理時間: result.analysis.processingTime + 'ms',
           信頼度: Math.round(result.analysis.confidence * 100) + '%',
-          改善点: result.analysis.improvements
+          改善点: result.analysis.improvements,
+          エンジン: result.metadata?.engine || 'unknown'
         });
+      }
+      
+      // Show AI feedback panel if using AI
+      if (window.aiEngine && result.provider !== 'fallback') {
+        setTimeout(() => {
+          if (window.aiEngine.showFeedbackPanel) {
+            window.aiEngine.showFeedbackPanel(result);
+          }
+        }, 1000);
       }
       
     } catch (error) {
