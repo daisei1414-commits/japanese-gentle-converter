@@ -101,21 +101,33 @@ class AIEnhancedConversionEngine {
     const startTime = Date.now();
     
     try {
+      // Debug logging for troubleshooting
+      console.log('🔍 Conversion Debug Info:');
+      console.log('- Original text:', originalText);
+      console.log('- Options:', options);
+      console.log('- AI Enabled:', this.isAIEnabled);
+      
       // Check if we have API keys and should attempt AI conversion
       const anthropicKey = localStorage.getItem('anthropic_api_key');
       const openaiKey = localStorage.getItem('openai_api_key');
       
+      console.log('- Anthropic key exists:', !!anthropicKey);
+      console.log('- OpenAI key exists:', !!openaiKey);
+      
       if (this.isAIEnabled && (anthropicKey || openaiKey)) {
         try {
-          // Attempt AI conversion (simplified for now since LLM modules might not be fully loaded)
-          console.log('🤖 Attempting AI conversion...');
+          console.log('🤖 Starting AI conversion process...');
           const result = await this.performAIConversion(originalText, options);
+          console.log('✅ AI conversion completed successfully');
           this.handleConversionSuccess(result, 'ai');
           return result;
         } catch (aiError) {
-          console.warn('AI conversion failed, falling back to rule-based:', aiError);
+          console.warn('❌ AI conversion failed, falling back to rule-based:', aiError);
           // Fall through to legacy conversion
         }
+      } else {
+        console.log('ℹ️ AI conversion not available - using rule-based conversion');
+        console.log('  Reasons: AI Enabled=' + this.isAIEnabled + ', Has Keys=' + !!(anthropicKey || openaiKey));
       }
       
       // Use legacy conversion
@@ -125,7 +137,7 @@ class AIEnhancedConversionEngine {
       return result;
       
     } catch (error) {
-      console.error('Conversion failed:', error);
+      console.error('❌ Conversion failed completely:', error);
       return this.handleConversionError(originalText, options, error);
     }
   }
@@ -482,6 +494,10 @@ APIキー状況: ${anthropicKey ? 'Anthropic ✓' : ''} ${openaiKey ? 'OpenAI �
       const anthropicKey = document.getElementById('anthropic-key').value.trim();
       const openaiKey = document.getElementById('openai-key').value.trim();
       
+      console.log('🔑 API Key Save Debug:');
+      console.log('- Anthropic key length:', anthropicKey.length);
+      console.log('- OpenAI key length:', openaiKey.length);
+      
       // Validate that at least one key is provided
       if (!anthropicKey && !openaiKey) {
         this.showNotification('⚠️ 少なくとも一つのAPIキーを入力してください', 'warning');
@@ -493,10 +509,12 @@ APIキー状況: ${anthropicKey ? 'Anthropic ✓' : ''} ${openaiKey ? 'OpenAI �
       if (anthropicKey) {
         localStorage.setItem('anthropic_api_key', anthropicKey);
         savedKeys.push('Anthropic Claude');
+        console.log('✅ Anthropic key saved to localStorage');
       }
       if (openaiKey) {
         localStorage.setItem('openai_api_key', openaiKey);
         savedKeys.push('OpenAI GPT');
+        console.log('✅ OpenAI key saved to localStorage');
       }
       
       this.closeAPIConfig();
@@ -504,6 +522,16 @@ APIキー状況: ${anthropicKey ? 'Anthropic ✓' : ''} ${openaiKey ? 'OpenAI �
       
       // Show success notification
       this.showNotification(`✅ APIキーが保存されました (${savedKeys.join(', ')})`, 'success');
+      
+      // Debug: Check if keys are actually saved
+      setTimeout(() => {
+        const savedAnthropicKey = localStorage.getItem('anthropic_api_key');
+        const savedOpenaiKey = localStorage.getItem('openai_api_key');
+        console.log('🔍 Verification after save:');
+        console.log('- Anthropic key in storage:', !!savedAnthropicKey);
+        console.log('- OpenAI key in storage:', !!savedOpenaiKey);
+        console.log('- AI Engine enabled:', this.isAIEnabled);
+      }, 100);
     });
     
     document.getElementById('close-api-config').addEventListener('click', () => {
@@ -756,22 +784,30 @@ APIキー状況: ${anthropicKey ? 'Anthropic ✓' : ''} ${openaiKey ? 'OpenAI �
 
   reinitializeAI() {
     try {
+      console.log('🔄 Reinitializing AI system...');
+      
       // Check if we have any API keys
       const anthropicKey = localStorage.getItem('anthropic_api_key');
       const openaiKey = localStorage.getItem('openai_api_key');
+      
+      console.log('🔍 Reinitialize Debug:');
+      console.log('- Anthropic key found:', !!anthropicKey);
+      console.log('- OpenAI key found:', !!openaiKey);
       
       if (anthropicKey || openaiKey) {
         this.initializeComponents();
         this.isAIEnabled = true;
         this.updateAIStatus('active');
         console.log('✅ AI components reinitialized successfully');
+        console.log('- AI Engine status: ENABLED');
       } else {
         this.isAIEnabled = false;
         this.updateAIStatus('fallback');
         console.log('⚠️ No API keys found, using fallback mode');
+        console.log('- AI Engine status: DISABLED');
       }
     } catch (error) {
-      console.error('AI reinitialization failed:', error);
+      console.error('❌ AI reinitialization failed:', error);
       this.updateAIStatus('error');
     }
   }
@@ -914,12 +950,19 @@ APIキー状況: ${anthropicKey ? 'Anthropic ✓' : ''} ${openaiKey ? 'OpenAI �
 
 // Initialize the enhanced engine when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
+  console.log('🚀 Initializing AI-Enhanced Japanese Gentle Converter...');
+  
   window.aiEngine = new AIEnhancedConversionEngine();
   
   // Check and initialize AI status
   setTimeout(() => {
+    console.log('🔍 Initial AI Status Check:');
     const anthropicKey = localStorage.getItem('anthropic_api_key');
     const openaiKey = localStorage.getItem('openai_api_key');
+    
+    console.log('- Checking localStorage for API keys...');
+    console.log('- Anthropic key exists:', !!anthropicKey);
+    console.log('- OpenAI key exists:', !!openaiKey);
     
     if (anthropicKey || openaiKey) {
       window.aiEngine.isAIEnabled = true;
@@ -930,6 +973,8 @@ document.addEventListener('DOMContentLoaded', function() {
       window.aiEngine.updateAIStatus('fallback');
       console.log('⚠️ No API keys found, using fallback mode');
     }
+    
+    console.log('- Final AI Engine status:', window.aiEngine.isAIEnabled ? 'ENABLED' : 'DISABLED');
   }, 500);
   
   // Expose to global scope for testing
