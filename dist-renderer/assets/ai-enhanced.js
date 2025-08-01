@@ -1306,24 +1306,30 @@ APIキー状況: ${anthropicKey ? 'Anthropic ✓' : ''} ${openaiKey ? 'OpenAI �
     this.showFeedbackStatus('📤 フィードバックを送信中...', 'info');
 
     try {
-      // Store feedback locally and simulate sending
+      // Simple feedback storage without btoa encoding issues
       const feedback = {
         rating: this.selectedRating,
         comment: comment.trim(),
         timestamp: new Date().toISOString(),
         conversionResult: document.getElementById('outputText')?.value || '',
         originalText: document.getElementById('inputText')?.value || '',
-        level: document.getElementById('levelSlider')?.value || 3
+        level: document.getElementById('levelSlider')?.value || 3,
+        // Use simple ID instead of btoa
+        id: Date.now().toString(36) + Math.random().toString(36).substr(2)
       };
 
       this.feedbackData.push(feedback);
       
-      // Store in localStorage for persistence
+      // Store in localStorage for persistence (avoid btoa issues)
       const existingFeedback = JSON.parse(localStorage.getItem('conversion_feedback') || '[]');
       existingFeedback.push(feedback);
       localStorage.setItem('conversion_feedback', JSON.stringify(existingFeedback));
 
-      console.log('📊 Feedback submitted:', feedback);
+      console.log('📊 Feedback submitted successfully:', {
+        rating: feedback.rating,
+        comment: feedback.comment,
+        id: feedback.id
+      });
 
       // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -1587,23 +1593,6 @@ APIキー状況: ${anthropicKey ? 'Anthropic ✓' : ''} ${openaiKey ? 'OpenAI �
     this.resetFeedbackForm();
   }
 
-  submitFeedback(rating, correction) {
-    if (this.currentConversionResult && this.feedbackLearning) {
-      this.feedbackLearning.collectFeedback({
-        originalText: this.currentConversionResult.original,
-        convertedText: this.currentConversionResult.converted,
-        userRating: rating,
-        userCorrection: correction,
-        context: this.currentConversionResult.context,
-        options: this.currentConversionResult.options
-      });
-      
-      console.log(`📝 Feedback submitted: ${rating}/5 stars`);
-    }
-    
-    this.hideFeedbackPanel();
-    this.showFeedbackThankYou();
-  }
 
   showFeedbackThankYou() {
     // Show temporary thank you message

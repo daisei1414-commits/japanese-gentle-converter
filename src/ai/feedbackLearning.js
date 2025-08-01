@@ -535,7 +535,24 @@ class FeedbackLearning {
    */
   generateFeedbackId(originalText, convertedText, timestamp) {
     const content = originalText + convertedText + timestamp;
-    return btoa(content).substring(0, 12);
+    
+    // Use safe UTF-8 compatible encoding instead of btoa
+    try {
+      // Convert to UTF-8 bytes then to base64
+      const utf8Bytes = new TextEncoder().encode(content);
+      const base64String = btoa(String.fromCharCode(...utf8Bytes));
+      return base64String.substring(0, 12);
+    } catch (error) {
+      console.warn('Base64 encoding failed, using hash fallback:', error);
+      // Fallback: Simple hash function for Japanese characters
+      let hash = 0;
+      for (let i = 0; i < content.length; i++) {
+        const char = content.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32-bit integer
+      }
+      return Math.abs(hash).toString(36).substring(0, 12);
+    }
   }
 
   calculateFeedbackMetrics(feedbackData) {
