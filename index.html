@@ -105,15 +105,18 @@
 </head>
 <body>
     <div class="container">
-        <h1>🌸 Japanese Gentle Converter v2.1 🌸</h1>
+        <h1>🌸 Japanese Gentle Converter v3.0 🌸</h1>
         <div style="text-align: center; margin-bottom: 25px;">
             <p style="color: #6c757d; margin-bottom: 10px;">
-                <strong>🧠 インテリジェント変換システム</strong> - 文脈を理解して自然な日本語に変換
+                <strong>🤖 AI搭載日本語変換システム</strong> - 生成AI + 文脈解析による自然な変換
             </p>
             <div style="background: rgba(102, 126, 234, 0.1); padding: 10px; border-radius: 8px; font-size: 14px; color: #495057;">
-                <strong>v2.1 新機能:</strong> 完全敬語統一システム • カジュアル表現の自動検出 • 文脈解析AI • 自然な文章生成
+                <strong>v3.0 新機能:</strong> LLM統合 • 高度なプロンプトエンジニアリング • リアルタイム品質評価 • 学習システム
                 <br>
-                <span style="color: #28a745;">✅ 全てのカジュアル表現を敬語に自動変換</span>
+                <span style="color: #28a745;">🚀 Anthropic Claude • OpenAI GPT • Google Gemini 対応</span>
+            </div>
+            <div style="background: rgba(255, 193, 7, 0.1); padding: 8px; border-radius: 6px; font-size: 12px; color: #856404; margin-top: 8px;">
+                💡 <strong>AI機能を使用するには:</strong> 右上のステータスから「API設定」でキーを入力してください
             </div>
         </div>
         
@@ -167,12 +170,24 @@
         </div>
         
         <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e1e5e9; color: #6c757d; font-size: 12px;">
-            <p>Japanese Gentle Converter v2.1.0 | Enhanced Intelligent Conversion System</p>
-            <p>🧠 Context Analysis • 📝 Word-Level Conversion • 🌟 Natural Generation • ✅ Complete Polite Unification</p>
+            <p>Japanese Gentle Converter v3.0.0 | AI-Powered Japanese Text Conversion System</p>
+            <p>🤖 LLM Integration • 🧠 Context Analysis • 📝 Quality Assessment • 🌟 Real-time Learning</p>
             <p style="margin-top: 10px;">© 2024 - 文脈を理解して自然な敬語に変換</p>
         </div>
     </div>
 
+    <!-- AI System Scripts -->
+    <script type="text/javascript" src="src/ai/llmProvider.js"></script>
+    <script type="text/javascript" src="src/ai/promptEngineer.js"></script>
+    <script type="text/javascript" src="src/ai/qualityAssessment.js"></script>
+    <script type="text/javascript" src="src/ai/feedbackLearning.js"></script>
+    <script type="text/javascript" src="src/ai/realTimeConverter.js"></script>
+    <script type="text/javascript" src="src/ai/aiTextConverter.js"></script>
+    
+    <!-- Legacy System (Fallback) -->
     <script type="text/javascript" src="dist-renderer/assets/index.js"></script>
+    
+    <!-- AI-Enhanced Interface -->
+    <script type="text/javascript" src="dist-renderer/assets/ai-enhanced.js"></script>
 </body>
 </html>
