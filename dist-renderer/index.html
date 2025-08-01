@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Japanese Gentle Converter</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 30px;
+            color: #333;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+        }
+        .input-section, .output-section {
+            margin-bottom: 25px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #495057;
+            font-size: 1.1rem;
+        }
+        textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 18px;
+            line-height: 1.5;
+            resize: vertical;
+            box-sizing: border-box;
+            min-height: 120px;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .level-control {
+            margin: 25px 0;
+            text-align: center;
+        }
+        .level-slider {
+            width: 100%;
+            margin: 15px 0;
+            height: 8px;
+        }
+        .level-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            color: #6c757d;
+            font-weight: 500;
+        }
+        .convert-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            width: 100%;
+            margin: 20px 0;
+        }
+        .convert-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+        }
+        .copy-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+            transition: all 0.2s ease;
+        }
+        .copy-btn:hover {
+            background: #218838;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌸 Japanese Gentle Converter v2.1 🌸</h1>
+        <div style="text-align: center; margin-bottom: 25px;">
+            <p style="color: #6c757d; margin-bottom: 10px;">
+                <strong>🧠 インテリジェント変換システム</strong> - 文脈を理解して自然な日本語に変換
+            </p>
+            <div style="background: rgba(102, 126, 234, 0.1); padding: 10px; border-radius: 8px; font-size: 14px; color: #495057;">
+                <strong>v2.1 新機能:</strong> 完全敬語統一システム • カジュアル表現の自動検出 • 文脈解析AI • 自然な文章生成
+                <br>
+                <span style="color: #28a745;">✅ 全てのカジュアル表現を敬語に自動変換</span>
+            </div>
+        </div>
+        
+        <div class="input-section">
+            <label for="inputText">📝 変換前の文章:</label>
+            <textarea id="inputText" placeholder="例: 恐れ入ります。いい感じ？ご検討のほどよろしくお願いします。"></textarea>
+        </div>
+
+        <div class="level-control">
+            <label>⚙️ 優しさレベル: <span id="levelValue">3</span></label>
+            <input type="range" id="levelSlider" class="level-slider" min="1" max="5" value="3">
+            <div class="level-labels">
+                <span>基本</span>
+                <span>気遣い</span>
+                <span>温かみ</span>
+                <span>絵文字😊</span>
+                <span>超温かい🌸</span>
+            </div>
+            <div style="text-align: center; margin-top: 15px;">
+                <button id="setDefaultBtn" style="background: #6c757d; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 14px; cursor: pointer;">
+                    📌 このレベルをデフォルトに設定
+                </button>
+                <button id="resetDefaultBtn" style="background: #dc3545; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 14px; cursor: pointer; margin-left: 10px;">
+                    🔄 デフォルトをリセット
+                </button>
+            </div>
+            <div id="defaultLevelInfo" style="text-align: center; margin-top: 10px; font-size: 14px; color: #28a745;">
+                
+            </div>
+        </div>
+
+        <button class="convert-btn" onclick="convertText()">✨ 変換する (Ctrl/Cmd + Enter) ✨</button>
+        
+        <div style="background: rgba(40, 167, 69, 0.1); padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #28a745;">
+            <h4 style="margin: 0 0 10px 0; color: #28a745;">⌨️ キーボードショートカット</h4>
+            <div style="font-size: 14px; color: #495057;">
+                <p style="margin: 5px 0;"><strong>Ctrl/Cmd + V</strong> : テキストをペースト（入力欄）</p>
+                <p style="margin: 5px 0;"><strong>Ctrl/Cmd + Enter</strong> : 変換実行</p>
+                <p style="margin: 5px 0;"><strong>Ctrl/Cmd + C</strong> : 変換結果をコピー（出力欄）</p>
+                <p style="margin: 5px 0;"><strong>Ctrl/Cmd + A</strong> : 全選択</p>
+            </div>
+        </div>
+
+        <div class="output-section">
+            <label for="outputText">🌟 変換後の文章:</label>
+            <textarea id="outputText" readonly placeholder="変換結果がここに表示されます..."></textarea>
+            <button class="copy-btn" onclick="copyToClipboard()" style="display: none;" id="copyBtn">📋 コピー</button>
+        </div>
+        
+        <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e1e5e9; color: #6c757d; font-size: 12px;">
+            <p>Japanese Gentle Converter v2.1.0 | Enhanced Intelligent Conversion System</p>
+            <p>🧠 Context Analysis • 📝 Word-Level Conversion • 🌟 Natural Generation • ✅ Complete Polite Unification</p>
+            <p style="margin-top: 10px;">© 2024 - 文脈を理解して自然な敬語に変換</p>
+        </div>
+    </div>
+
+    <script type="text/javascript" src="assets/index.js"></script>
+</body>
+</html>
