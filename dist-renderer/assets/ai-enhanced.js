@@ -143,32 +143,126 @@ class AIEnhancedConversionEngine {
   }
 
   /**
-   * Perform AI conversion using enhanced rule-based processing
-   * (Browser-based LLM calls have CORS limitations, so we use advanced rule-based AI simulation)
+   * Perform REAL AI conversion using Vercel serverless functions
    */
   async performAIConversion(originalText, options) {
     const anthropicKey = localStorage.getItem('anthropic_api_key');
     const openaiKey = localStorage.getItem('openai_api_key');
     
-    // Simulate AI processing delay for realistic feel
-    console.log('🤖 Processing with AI simulation engine...');
-    await new Promise(resolve => setTimeout(resolve, 800));
+    // Determine which AI provider to use
+    let provider = 'claude';
+    let apiKey = anthropicKey;
     
-    // Use advanced rule-based conversion that mimics AI behavior
-    const result = await this.advancedAISimulation(originalText, options);
-    
-    // Add provider information based on available keys
-    if (anthropicKey) {
-      result.provider = 'claude-simulation';
-      result.metadata.engine = 'claude-enhanced-rules';
-      console.log('✅ AI simulation completed using Claude-style processing');
-    } else if (openaiKey) {
-      result.provider = 'openai-simulation';
-      result.metadata.engine = 'gpt-enhanced-rules';
-      console.log('✅ AI simulation completed using GPT-style processing');
+    if (!anthropicKey && openaiKey) {
+      provider = 'openai';
+      apiKey = openaiKey;
+    } else if (!anthropicKey && !openaiKey) {
+      throw new Error('No AI API keys available');
     }
     
-    return result;
+    console.log(`🚀 Starting REAL AI conversion with ${provider}...`);
+
+    try {
+      // Call our Vercel serverless function
+      const apiUrl = this.getAPIEndpoint();
+      const startTime = Date.now();
+      
+      console.log(`📡 Calling AI API: ${apiUrl}`);
+      
+      const response = await fetch(`${apiUrl}/api/convert`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: originalText,
+          level: options.level || 3,
+          apiKey: apiKey,
+          provider: provider
+        })
+      });
+      
+      const responseTime = Date.now() - startTime;
+      console.log(`⚡ API Response Time: ${responseTime}ms`);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`API Error: ${response.status} - ${errorData.error}`);
+      }
+
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error);
+      }
+
+      // Add processing time to analysis
+      result.analysis.processingTime = responseTime;
+      
+      console.log(`✅ REAL AI conversion completed successfully with ${result.provider}`);
+      console.log(`📝 Result: "${result.converted}"`);
+      
+      return {
+        original: result.original,
+        converted: result.converted,
+        provider: result.provider,
+        confidence: result.confidence,
+        analysis: result.analysis,
+        metadata: {
+          ...result.metadata,
+          realAI: true,
+          responseTime: responseTime
+        },
+        suggestions: result.suggestions
+      };
+
+    } catch (error) {
+      console.error('❌ Real AI conversion failed:', error);
+      
+      // Show user-friendly error notification
+      if (error.message.includes('API Error: 401')) {
+        this.showNotification('🔑 APIキーが無効です。設定を確認してください', 'error');
+      } else if (error.message.includes('API Error: 429')) {
+        this.showNotification('⏰ API利用制限に達しました。しばらく待ってから再試行してください', 'warning');
+      } else if (error.message.includes('Failed to fetch')) {
+        this.showNotification('🌐 ネットワークエラーです。接続を確認してください', 'warning');
+      } else {
+        this.showNotification('⚠️ AI変換でエラーが発生しました。ルールベース変換に切り替えます', 'warning');
+      }
+      
+      // Fallback to advanced rule-based conversion
+      console.log('🔄 Falling back to advanced rule-based conversion...');
+      const fallbackResult = await this.advancedAISimulation(originalText, options);
+      
+      // Add fallback information
+      fallbackResult.fallback = true;
+      fallbackResult.fallbackReason = error.message;
+      fallbackResult.suggestions.unshift({
+        type: 'fallback_warning',
+        message: 'AI変換に失敗したため、高度なルールベース変換を使用しました',
+        priority: 'warning'
+      });
+      
+      return fallbackResult;
+    }
+  }
+
+  /**
+   * Get API endpoint URL (development vs production)
+   */
+  getAPIEndpoint() {
+    // In production, use the same domain
+    if (window.location.hostname === 'daisei1414-commits.github.io') {
+      return 'https://japanese-gentle-converter.vercel.app';
+    }
+    
+    // For local development
+    if (window.location.hostname === 'localhost') {
+      return 'http://localhost:3000';
+    }
+    
+    // Default to Vercel deployment
+    return 'https://japanese-gentle-converter.vercel.app';
   }
 
   /**

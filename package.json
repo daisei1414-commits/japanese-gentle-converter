@@ -15,7 +15,9 @@
     "dist": "electron-builder",
     "test": "jest",
     "lint": "eslint src/",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "vercel-dev": "vercel dev",
+    "vercel-deploy": "vercel --prod"
   },
   "keywords": ["japanese", "text-conversion", "politeness", "electron", "desktop"],
   "author": "Your Name",
