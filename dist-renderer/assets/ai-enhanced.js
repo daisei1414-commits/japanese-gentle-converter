@@ -297,8 +297,10 @@ class AIEnhancedConversionEngine {
           this.showNotification('🔑 APIキーが無効です。設定を確認してください', 'error');
         } else if (error.message.includes('API Error: 429')) {
           this.showNotification('⏰ API利用制限に達しました。しばらく待ってから再試行してください', 'warning');
-        } else if (error.message.includes('Failed to fetch')) {
-          this.showNotification('🌐 Vercelサーバーに接続できません。直接API接続を試行中...', 'warning');
+        } else if (error.message.includes('Failed to fetch') || error.message.includes('CORS')) {
+          this.showNotification('🌐 AI API接続に失敗しました。高度なルールベース変換を使用します', 'warning');
+        } else if (error.message.includes('All direct AI calls failed')) {
+          this.showNotification('🤖 全てのAI接続方法が失敗しました。ルールベース変換を使用します', 'info');
         } else {
           this.showNotification('⚠️ AI変換でエラーが発生しました。ルールベース変換に切り替えます', 'warning');
         }
@@ -366,27 +368,19 @@ class AIEnhancedConversionEngine {
     
     // Try multiple CORS proxy services (in order of reliability)
     const corsProxies = [
-      // Use allorigins with proper format for Claude
+      // Alternative working proxies
+      {
+        url: 'https://corsproxy.io/?',
+        type: 'standard'
+      },
+      {
+        url: 'https://cors.bridged.cc/',
+        type: 'standard'
+      },
+      // Keep allorigins as fallback (may have issues but worth trying)
       {
         url: 'https://api.allorigins.win/get',
         type: 'allorigins'
-      },
-      // Standard CORS proxies
-      {
-        url: 'https://thingproxy.freeboard.io/fetch/',
-        type: 'standard'
-      },
-      {
-        url: 'https://api.codetabs.com/v1/proxy?quest=',
-        type: 'standard'
-      },
-      {
-        url: 'https://cors-anywhere.herokuapp.com/',
-        type: 'standard'
-      },
-      {
-        url: 'https://proxy.cors.sh/',
-        type: 'standard'
       }
     ];
     
@@ -464,7 +458,18 @@ class AIEnhancedConversionEngine {
         
         // Handle allorigins response format
         if (proxy.type === 'allorigins' && data.contents) {
-          data = JSON.parse(data.contents);
+          try {
+            data = JSON.parse(data.contents);
+          } catch (parseError) {
+            console.warn(`❌ Failed to parse allorigins response:`, parseError);
+            throw new Error('Invalid allorigins response format');
+          }
+        }
+
+        // Validate response structure for Claude
+        if (!data || !data.content || !Array.isArray(data.content) || data.content.length === 0) {
+          console.warn(`❌ Invalid Claude API response structure:`, data);
+          throw new Error('Invalid Claude API response structure');
         }
 
         const convertedText = data.content[0].text.trim();
@@ -511,27 +516,19 @@ class AIEnhancedConversionEngine {
     
     // Try CORS proxy services for OpenAI (in order of reliability)
     const corsProxies = [
-      // Use allorigins with proper format for OpenAI
+      // Alternative working proxies
+      {
+        url: 'https://corsproxy.io/?',
+        type: 'standard'
+      },
+      {
+        url: 'https://cors.bridged.cc/',
+        type: 'standard'
+      },
+      // Keep allorigins as fallback (may have issues but worth trying)
       {
         url: 'https://api.allorigins.win/get',
         type: 'allorigins'
-      },
-      // Standard CORS proxies
-      {
-        url: 'https://thingproxy.freeboard.io/fetch/',
-        type: 'standard'
-      },
-      {
-        url: 'https://api.codetabs.com/v1/proxy?quest=',
-        type: 'standard'
-      },
-      {
-        url: 'https://cors-anywhere.herokuapp.com/',
-        type: 'standard'
-      },
-      {
-        url: 'https://proxy.cors.sh/',
-        type: 'standard'
       }
     ];
     
@@ -609,7 +606,23 @@ class AIEnhancedConversionEngine {
         
         // Handle allorigins response format
         if (proxy.type === 'allorigins' && data.contents) {
-          data = JSON.parse(data.contents);
+          try {
+            data = JSON.parse(data.contents);
+          } catch (parseError) {
+            console.warn(`❌ Failed to parse allorigins response:`, parseError);
+            throw new Error('Invalid allorigins response format');
+          }
+        }
+
+        // Validate response structure for OpenAI
+        if (!data || !data.choices || !Array.isArray(data.choices) || data.choices.length === 0) {
+          console.warn(`❌ Invalid OpenAI API response structure:`, data);
+          throw new Error('Invalid OpenAI API response structure');
+        }
+
+        if (!data.choices[0].message || !data.choices[0].message.content) {
+          console.warn(`❌ Invalid OpenAI message structure:`, data.choices[0]);
+          throw new Error('Invalid OpenAI message structure');
         }
 
         const convertedText = data.choices[0].message.content.trim();
