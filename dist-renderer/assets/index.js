@@ -466,7 +466,7 @@ document.addEventListener('DOMContentLoaded', function() {
   });
   
   // Convert text - AI Enhanced Version
-  async function convertText() {
+  window.convertText = async function() {
     const text = inputText.value.trim();
     const level = parseInt(levelSlider.value);
     
@@ -522,7 +522,7 @@ document.addEventListener('DOMContentLoaded', function() {
       console.error('Conversion failed:', error);
       alert('変換に失敗しました。');
     }
-  }
+  };
   
   // Copy to clipboard
   async function copyToClipboard() {
