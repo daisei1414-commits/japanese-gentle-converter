@@ -1296,11 +1296,23 @@ APIキー状況: ${anthropicKey ? 'Anthropic ✓' : ''} ${openaiKey ? 'OpenAI �
 
     const comment = document.getElementById('feedbackComment')?.value || '';
     const submitBtn = document.getElementById('submitFeedbackBtn');
+    const submitBtnText = document.getElementById('submitBtnText');
+    const submitBtnLoader = document.getElementById('submitBtnLoader');
     
-    // Show loading state
-    if (submitBtn) {
-      submitBtn.textContent = '📤 送信中...';
+    // Show enhanced loading state with animation
+    if (submitBtn && submitBtnText && submitBtnLoader) {
+      submitBtn.classList.add('sending');
       submitBtn.disabled = true;
+      submitBtnText.style.display = 'none';
+      submitBtnLoader.style.display = 'block';
+      
+      // Add click feedback
+      submitBtn.style.background = '#17a2b8';
+      setTimeout(() => {
+        if (submitBtn.classList.contains('sending')) {
+          submitBtn.style.background = '#28a745';
+        }
+      }, 200);
     }
 
     this.showFeedbackStatus('📤 フィードバックを送信中...', 'info');
@@ -1332,28 +1344,59 @@ APIキー状況: ${anthropicKey ? 'Anthropic ✓' : ''} ${openaiKey ? 'OpenAI �
       });
 
       // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 1200));
+
+      // Show success animation
+      if (submitBtn && submitBtnText && submitBtnLoader) {
+        submitBtn.classList.remove('sending');
+        submitBtn.classList.add('success');
+        submitBtnLoader.style.display = 'none';
+        submitBtnText.style.display = 'block';
+        submitBtnText.textContent = '✅ 送信完了';
+        submitBtn.style.background = '#28a745';
+      }
 
       this.showFeedbackStatus('✅ フィードバックが送信されました。ありがとうございます！', 'success');
       
-      // Reset form
-      this.resetFeedbackForm();
+      // Reset form after success animation
+      setTimeout(() => {
+        this.resetFeedbackForm();
+        
+        // Reset button appearance
+        if (submitBtn && submitBtnText) {
+          submitBtn.classList.remove('success');
+          submitBtn.disabled = false;
+          submitBtnText.textContent = '📤 フィードバックを送信';
+          submitBtn.style.background = '#667eea';
+        }
+      }, 1500);
       
       // Hide feedback section after success
       setTimeout(() => {
         const section = document.getElementById('aiEvaluationSection');
         if (section) section.style.display = 'none';
-      }, 2000);
+      }, 3000);
 
     } catch (error) {
       console.error('❌ Feedback submission error:', error);
       this.showFeedbackStatus('❌ 送信に失敗しました。再試行してください。', 'error');
-    }
-
-    // Reset button
-    if (submitBtn) {
-      submitBtn.textContent = '📤 フィードバックを送信';
-      submitBtn.disabled = false;
+      
+      // Reset button on error
+      if (submitBtn && submitBtnText && submitBtnLoader) {
+        submitBtn.classList.remove('sending');
+        submitBtn.disabled = false;
+        submitBtnText.style.display = 'block';
+        submitBtnLoader.style.display = 'none';
+        submitBtnText.textContent = '📤 フィードバックを送信';
+        submitBtn.style.background = '#dc3545';
+        
+        // Return to normal color after error display
+        setTimeout(() => {
+          if (submitBtn) {
+            submitBtn.style.background = '#667eea';
+          }
+        }, 2000);
+      }
     }
   }
 
