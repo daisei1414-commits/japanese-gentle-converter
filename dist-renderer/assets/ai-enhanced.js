@@ -306,69 +306,197 @@ class AIEnhancedConversionEngine {
   }
 
   /**
-   * Call Claude API directly with CORS proxy
+   * Call Claude API directly with multiple CORS proxy attempts
    */
   async callClaudeDirectly(text, level, apiKey) {
     const prompt = `日本語敬語変換: "${text}" をレベル${level}の敬語で変換してください。変換結果のみを出力:`;
     
-    // Use a CORS proxy service
-    const proxyUrl = 'https://api.allorigins.win/raw?url=';
-    const apiUrl = encodeURIComponent('https://api.anthropic.com/v1/messages');
+    // Try multiple CORS proxy services (in order of reliability)
+    const corsProxies = [
+      'https://thingproxy.freeboard.io/fetch/',
+      'https://api.codetabs.com/v1/proxy?quest=',
+      'https://cors-anywhere.herokuapp.com/',
+      'https://proxy.cors.sh/',
+      'https://corsproxy.io/?'
+    ];
     
-    const response = await fetch(`${proxyUrl}${apiUrl}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: 'claude-3-haiku-20240307',
-        max_tokens: 1000,
-        messages: [{
-          role: 'user',
-          content: prompt
-        }]
-      })
-    });
+    for (const proxyUrl of corsProxies) {
+      try {
+        console.log(`🔄 Trying CORS proxy: ${proxyUrl}`);
+        
+        let requestUrl;
+        let requestOptions;
+        
+        if (proxyUrl.includes('allorigins')) {
+          // allorigins format (POST data in body)
+          requestUrl = `${proxyUrl}${encodeURIComponent('https://api.anthropic.com/v1/messages')}`;
+          requestOptions = {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              url: 'https://api.anthropic.com/v1/messages',
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': apiKey,
+                'anthropic-version': '2023-06-01'
+              },
+              body: JSON.stringify({
+                model: 'claude-3-haiku-20240307',
+                max_tokens: 1000,
+                messages: [{
+                  role: 'user',
+                  content: prompt
+                }]
+              })
+            })
+          };
+        } else {
+          // Standard proxy format
+          requestUrl = `${proxyUrl}https://api.anthropic.com/v1/messages`;
+          requestOptions = {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-api-key': apiKey,
+              'anthropic-version': '2023-06-01',
+              'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+              model: 'claude-3-haiku-20240307',
+              max_tokens: 1000,
+              messages: [{
+                role: 'user',
+                content: prompt
+              }]
+            })
+          };
+        }
 
-    if (!response.ok) {
-      throw new Error(`Claude direct API error: ${response.status}`);
+        const response = await fetch(requestUrl, requestOptions);
+
+        if (!response.ok) {
+          console.warn(`❌ Proxy ${proxyUrl} failed with status: ${response.status}`);
+          continue;
+        }
+
+        const data = await response.json();
+        const convertedText = data.content[0].text.trim();
+
+        console.log(`✅ Successfully used proxy: ${proxyUrl}`);
+
+        return {
+          original: text,
+          converted: convertedText,
+          provider: 'claude-direct',
+          confidence: 0.93,
+          analysis: {
+            processingTime: Date.now(),
+            confidence: 0.93,
+            improvements: ['Claude Direct API', 'CORS Proxy', '高品質変換']
+          },
+          metadata: {
+            timestamp: new Date().toISOString(),
+            engine: 'claude-3-haiku-direct',
+            version: '4.0.0-direct',
+            features: ['direct-api', 'cors-proxy']
+          },
+          suggestions: [{
+            type: 'direct_success',
+            message: 'Claude APIへの直接接続により変換が完了しました',
+            priority: 'info'
+          }]
+        };
+
+      } catch (error) {
+        console.warn(`❌ CORS proxy ${proxyUrl} failed:`, error.message);
+        continue;
+      }
     }
-
-    const data = await response.json();
-    const convertedText = data.content[0].text.trim();
-
-    return {
-      original: text,
-      converted: convertedText,
-      provider: 'claude-direct',
-      confidence: 0.93,
-      analysis: {
-        processingTime: Date.now(),
-        confidence: 0.93,
-        improvements: ['Claude Direct API', 'CORS Proxy', '高品質変換']
-      },
-      metadata: {
-        timestamp: new Date().toISOString(),
-        engine: 'claude-3-haiku-direct',
-        version: '4.0.0-direct',
-        features: ['direct-api', 'cors-proxy']
-      },
-      suggestions: [{
-        type: 'direct_success',
-        message: 'Claude APIへの直接接続により変換が完了しました',
-        priority: 'info'
-      }]
-    };
+    
+    throw new Error('All CORS proxy attempts failed');
   }
 
   /**
-   * Call OpenAI API directly (Note: this will likely fail due to CORS)
+   * Call OpenAI API directly with CORS proxy attempts
    */
   async callOpenAIDirectly(text, level, apiKey) {
-    // OpenAI doesn't allow CORS, so this is mainly for completeness
-    throw new Error('OpenAI direct calls not supported due to CORS restrictions');
+    const prompt = `日本語敬語変換: "${text}" をレベル${level}の敬語で変換してください。変換結果のみを出力:`;
+    
+    // Try CORS proxy services for OpenAI (in order of reliability)
+    const corsProxies = [
+      'https://thingproxy.freeboard.io/fetch/',
+      'https://api.codetabs.com/v1/proxy?quest=',
+      'https://cors-anywhere.herokuapp.com/',
+      'https://proxy.cors.sh/',
+      'https://corsproxy.io/?'
+    ];
+    
+    for (const proxyUrl of corsProxies) {
+      try {
+        console.log(`🔄 Trying OpenAI via CORS proxy: ${proxyUrl}`);
+        
+        const requestUrl = `${proxyUrl}https://api.openai.com/v1/chat/completions`;
+        const response = await fetch(requestUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`,
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          body: JSON.stringify({
+            model: 'gpt-3.5-turbo',
+            messages: [{
+              role: 'user',
+              content: prompt
+            }],
+            max_tokens: 1000,
+            temperature: 0.3
+          })
+        });
+
+        if (!response.ok) {
+          console.warn(`❌ OpenAI proxy ${proxyUrl} failed with status: ${response.status}`);
+          continue;
+        }
+
+        const data = await response.json();
+        const convertedText = data.choices[0].message.content.trim();
+
+        console.log(`✅ Successfully used OpenAI proxy: ${proxyUrl}`);
+
+        return {
+          original: text,
+          converted: convertedText,
+          provider: 'openai-direct',
+          confidence: 0.91,
+          analysis: {
+            processingTime: Date.now(),
+            confidence: 0.91,
+            improvements: ['OpenAI Direct API', 'CORS Proxy', '高品質変換']
+          },
+          metadata: {
+            timestamp: new Date().toISOString(),
+            engine: 'gpt-3.5-turbo-direct',
+            version: '4.0.0-direct',
+            features: ['direct-api', 'cors-proxy']
+          },
+          suggestions: [{
+            type: 'direct_success',
+            message: 'OpenAI APIへの直接接続により変換が完了しました',
+            priority: 'info'
+          }]
+        };
+
+      } catch (error) {
+        console.warn(`❌ OpenAI proxy ${proxyUrl} failed:`, error.message);
+        continue;
+      }
+    }
+    
+    throw new Error('All OpenAI CORS proxy attempts failed');
   }
 
   /**
