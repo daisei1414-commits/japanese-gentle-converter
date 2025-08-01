@@ -95,6 +95,59 @@ class AIEnhancedConversionEngine {
     
     // Initialize default level functionality
     this.initializeDefaultLevelControls();
+    
+    // Initialize feedback functionality
+    this.initializeFeedbackSystem();
+  }
+
+  initializeFeedbackSystem() {
+    // Setup feedback handlers after DOM is ready
+    const setupHandlers = () => {
+      console.log('🔧 Setting up feedback system...');
+      
+      // Find feedback buttons
+      const feedbackButtons = document.querySelectorAll('.feedback-btn');
+      console.log(`📊 Found ${feedbackButtons.length} feedback buttons`);
+      
+      feedbackButtons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const rating = parseInt(e.target.dataset.rating);
+          console.log(`📊 Feedback rating selected: ${rating}`);
+          this.selectFeedbackRating(rating);
+        });
+      });
+
+      // Find and setup submit button
+      const submitBtn = document.getElementById('submitFeedbackBtn');
+      if (submitBtn) {
+        console.log('📤 Setting up submit feedback button');
+        
+        // Remove existing listeners and clone to avoid duplicates
+        const newSubmitBtn = submitBtn.cloneNode(true);
+        submitBtn.parentNode.replaceChild(newSubmitBtn, submitBtn);
+        
+        newSubmitBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          console.log('📤 Submit feedback button clicked!');
+          this.submitFeedback();
+        });
+        
+        console.log('✅ Submit feedback handler attached');
+      } else {
+        console.warn('❌ Submit feedback button not found');
+      }
+    };
+
+    // Try immediately if DOM is ready
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', setupHandlers);
+    } else {
+      setupHandlers();
+    }
+    
+    // Also try after a delay to ensure everything is loaded
+    setTimeout(setupHandlers, 1000);
   }
 
   /**
