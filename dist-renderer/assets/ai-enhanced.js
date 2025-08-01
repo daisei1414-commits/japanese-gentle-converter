@@ -92,6 +92,9 @@ class AIEnhancedConversionEngine {
     
     // Add real-time conversion indicators
     this.addRealTimeIndicators();
+    
+    // Initialize default level functionality
+    this.initializeDefaultLevelControls();
   }
 
   /**
@@ -540,6 +543,11 @@ class AIEnhancedConversionEngine {
     // Update AI status
     this.updateAIStatus(engine === 'ai' ? 'active' : 'fallback');
     
+    // Show AI evaluation section if it was AI conversion
+    if (engine === 'ai' && result.analysis) {
+      this.showAIEvaluationSection(result);
+    }
+    
     // Show quality indicators
     if (result.quality) {
       this.showQualityIndicators(result.quality);
@@ -594,6 +602,106 @@ class AIEnhancedConversionEngine {
       case 4: return 'いつもお世話になっております😊 ' + converted + '✨ よろしくお願いいたします🙏';
       case 5: return '🌸いつもお世話になっております😊💕 ' + converted + '✨🌟 心より感謝いたします🙏💖';
       default: return converted;
+    }
+  }
+
+  /**
+   * Initialize default level controls
+   */
+  initializeDefaultLevelControls() {
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => {
+        this.setupDefaultLevelHandlers();
+      });
+    } else {
+      this.setupDefaultLevelHandlers();
+    }
+  }
+
+  setupDefaultLevelHandlers() {
+    // Load and display current default level
+    this.loadDefaultLevel();
+
+    // Set default button handler
+    const setDefaultBtn = document.getElementById('setDefaultBtn');
+    if (setDefaultBtn) {
+      setDefaultBtn.addEventListener('click', () => {
+        this.setDefaultLevel();
+      });
+    }
+
+    // Reset default button handler
+    const resetDefaultBtn = document.getElementById('resetDefaultBtn');
+    if (resetDefaultBtn) {
+      resetDefaultBtn.addEventListener('click', () => {
+        this.resetDefaultLevel();
+      });
+    }
+
+    // Update display when slider changes
+    const levelSlider = document.getElementById('levelSlider');
+    if (levelSlider) {
+      levelSlider.addEventListener('input', () => {
+        this.updateDefaultLevelDisplay();
+      });
+    }
+  }
+
+  loadDefaultLevel() {
+    const defaultLevel = localStorage.getItem('default_level');
+    if (defaultLevel) {
+      const level = parseInt(defaultLevel);
+      const levelSlider = document.getElementById('levelSlider');
+      const levelValue = document.getElementById('levelValue');
+      
+      if (levelSlider) levelSlider.value = level;
+      if (levelValue) levelValue.textContent = level;
+      
+      this.updateDefaultLevelDisplay();
+    }
+  }
+
+  setDefaultLevel() {
+    const levelSlider = document.getElementById('levelSlider');
+    if (!levelSlider) return;
+
+    const currentLevel = parseInt(levelSlider.value);
+    localStorage.setItem('default_level', currentLevel.toString());
+    
+    this.updateDefaultLevelDisplay();
+    this.showNotification(`📌 デフォルトレベルをレベル${currentLevel}に設定しました`, 'success');
+    
+    console.log(`📌 Default level set to: ${currentLevel}`);
+  }
+
+  resetDefaultLevel() {
+    localStorage.removeItem('default_level');
+    
+    // Reset to level 3
+    const levelSlider = document.getElementById('levelSlider');
+    const levelValue = document.getElementById('levelValue');
+    
+    if (levelSlider) levelSlider.value = 3;
+    if (levelValue) levelValue.textContent = 3;
+    
+    this.updateDefaultLevelDisplay();
+    this.showNotification('🔄 デフォルトレベルをリセットしました（レベル3）', 'info');
+    
+    console.log('🔄 Default level reset to 3');
+  }
+
+  updateDefaultLevelDisplay() {
+    const defaultLevel = localStorage.getItem('default_level');
+    const currentDefaultLevel = document.getElementById('currentDefaultLevel');
+    
+    if (currentDefaultLevel) {
+      if (defaultLevel) {
+        currentDefaultLevel.textContent = `レベル ${defaultLevel}`;
+        currentDefaultLevel.style.background = '#28a745';
+      } else {
+        currentDefaultLevel.textContent = 'レベル 3 (デフォルト)';
+        currentDefaultLevel.style.background = '#6c757d';
+      }
     }
   }
 
@@ -842,6 +950,146 @@ APIキー状況: ${anthropicKey ? 'Anthropic ✓' : ''} ${openaiKey ? 'OpenAI �
       }
       
     }, 100);
+  }
+
+  showAIEvaluationSection(result) {
+    const section = document.getElementById('aiEvaluationSection');
+    if (!section) return;
+
+    // Show the section
+    section.style.display = 'block';
+
+    // Update analysis information
+    const analysisDiv = document.getElementById('aiAnalysis');
+    if (analysisDiv && result.analysis) {
+      analysisDiv.innerHTML = `
+        <div style="display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 10px;">
+          <div><strong>🤖 AI Provider:</strong> ${result.provider || 'Unknown'}</div>
+          <div><strong>⭐ Confidence:</strong> ${Math.round((result.confidence || 0) * 100)}%</div>
+          <div><strong>⚡ Response Time:</strong> ${result.analysis.processingTime || result.metadata?.responseTime || 'N/A'}ms</div>
+        </div>
+        <div style="font-size: 13px; color: #6c757d;">
+          ${result.analysis.improvements ? result.analysis.improvements.join(' • ') : ''}
+        </div>
+      `;
+    }
+
+    // Reset feedback form for new evaluation
+    this.resetFeedbackForm();
+  }
+
+  selectFeedbackRating(rating) {
+    this.selectedRating = rating;
+    
+    // Update button states
+    const feedbackButtons = document.querySelectorAll('.feedback-btn');
+    feedbackButtons.forEach(btn => {
+      if (parseInt(btn.dataset.rating) === rating) {
+        btn.style.opacity = '1';
+        btn.style.transform = 'scale(1.05)';
+        btn.style.boxShadow = '0 0 10px rgba(102, 126, 234, 0.5)';
+      } else {
+        btn.style.opacity = '0.6';
+        btn.style.transform = 'scale(1)';
+        btn.style.boxShadow = 'none';
+      }
+    });
+
+    console.log(`📊 Feedback rating selected: ${rating}`);
+  }
+
+  async submitFeedback() {
+    if (!this.selectedRating) {
+      this.showFeedbackStatus('❌ 評価を選択してください', 'error');
+      return;
+    }
+
+    const comment = document.getElementById('feedbackComment')?.value || '';
+    const submitBtn = document.getElementById('submitFeedbackBtn');
+    
+    // Show loading state
+    if (submitBtn) {
+      submitBtn.textContent = '📤 送信中...';
+      submitBtn.disabled = true;
+    }
+
+    this.showFeedbackStatus('📤 フィードバックを送信中...', 'info');
+
+    try {
+      // Store feedback locally and simulate sending
+      const feedback = {
+        rating: this.selectedRating,
+        comment: comment.trim(),
+        timestamp: new Date().toISOString(),
+        conversionResult: document.getElementById('outputText')?.value || '',
+        originalText: document.getElementById('inputText')?.value || '',
+        level: document.getElementById('levelSlider')?.value || 3
+      };
+
+      this.feedbackData.push(feedback);
+      
+      // Store in localStorage for persistence
+      const existingFeedback = JSON.parse(localStorage.getItem('conversion_feedback') || '[]');
+      existingFeedback.push(feedback);
+      localStorage.setItem('conversion_feedback', JSON.stringify(existingFeedback));
+
+      console.log('📊 Feedback submitted:', feedback);
+
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      this.showFeedbackStatus('✅ フィードバックが送信されました。ありがとうございます！', 'success');
+      
+      // Reset form
+      this.resetFeedbackForm();
+      
+      // Hide feedback section after success
+      setTimeout(() => {
+        const section = document.getElementById('aiEvaluationSection');
+        if (section) section.style.display = 'none';
+      }, 2000);
+
+    } catch (error) {
+      console.error('❌ Feedback submission error:', error);
+      this.showFeedbackStatus('❌ 送信に失敗しました。再試行してください。', 'error');
+    }
+
+    // Reset button
+    if (submitBtn) {
+      submitBtn.textContent = '📤 フィードバックを送信';
+      submitBtn.disabled = false;
+    }
+  }
+
+  showFeedbackStatus(message, type) {
+    const statusDiv = document.getElementById('feedbackStatus');
+    if (!statusDiv) return;
+
+    const colors = {
+      success: '#28a745',
+      error: '#dc3545',
+      warning: '#ffc107',
+      info: '#17a2b8'
+    };
+
+    statusDiv.textContent = message;
+    statusDiv.style.color = colors[type] || colors.info;
+    statusDiv.style.fontWeight = '600';
+  }
+
+  resetFeedbackForm() {
+    // Reset rating selection
+    this.selectedRating = null;
+    const feedbackButtons = document.querySelectorAll('.feedback-btn');
+    feedbackButtons.forEach(btn => {
+      btn.style.opacity = '1';
+      btn.style.transform = 'scale(1)';
+      btn.style.boxShadow = 'none';
+    });
+
+    // Clear comment
+    const commentField = document.getElementById('feedbackComment');
+    if (commentField) commentField.value = '';
   }
 
   addRealTimeIndicators() {

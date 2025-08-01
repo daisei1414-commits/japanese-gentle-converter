@@ -178,17 +178,6 @@
                 <span>絵文字😊</span>
                 <span>超温かい🌸</span>
             </div>
-            <div style="text-align: center; margin-top: 15px;">
-                <button id="setDefaultBtn" style="background: #6c757d; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 14px; cursor: pointer;">
-                    📌 このレベルをデフォルトに設定
-                </button>
-                <button id="resetDefaultBtn" style="background: #dc3545; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 14px; cursor: pointer; margin-left: 10px;">
-                    🔄 デフォルトをリセット
-                </button>
-            </div>
-            <div id="defaultLevelInfo" style="text-align: center; margin-top: 10px; font-size: 14px; color: #28a745;">
-                
-            </div>
         </div>
 
         <button class="convert-btn" onclick="convertText()">✨ 変換する (Ctrl/Cmd + Enter) ✨</button>
@@ -197,6 +186,51 @@
             <label for="outputText">🌟 変換後の文章:</label>
             <textarea id="outputText" readonly placeholder="変換結果がここに表示されます..."></textarea>
             <button class="copy-btn" onclick="copyToClipboard()" style="display: none;" id="copyBtn">📋 コピー</button>
+            
+            <!-- AI評価・フィードバックセクション -->
+            <div id="aiEvaluationSection" style="display: none; background: rgba(102, 126, 234, 0.1); padding: 15px; border-radius: 8px; margin-top: 15px;">
+                <h4 style="margin: 0 0 10px 0; color: #667eea;">🤖 AI変換の評価</h4>
+                <div id="aiAnalysis" style="margin-bottom: 15px; font-size: 14px; color: #495057;"></div>
+                
+                <div style="margin-bottom: 15px;">
+                    <label style="font-size: 14px; color: #495057; margin-bottom: 5px;">📊 この変換結果の評価をお聞かせください:</label>
+                    <div style="display: flex; gap: 10px; align-items: center; margin-top: 5px;">
+                        <button class="feedback-btn" data-rating="1" style="background: #dc3545; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">😞 悪い</button>
+                        <button class="feedback-btn" data-rating="2" style="background: #fd7e14; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">😐 普通</button>
+                        <button class="feedback-btn" data-rating="3" style="background: #ffc107; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">🙂 良い</button>
+                        <button class="feedback-btn" data-rating="4" style="background: #20c997; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">😊 とても良い</button>
+                        <button class="feedback-btn" data-rating="5" style="background: #28a745; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-size: 12px; cursor: pointer;">🤩 完璧</button>
+                    </div>
+                </div>
+                
+                <div style="margin-bottom: 15px;">
+                    <label style="font-size: 14px; color: #495057; margin-bottom: 5px;">💬 改善点やコメント（任意）:</label>
+                    <textarea id="feedbackComment" placeholder="変換結果に対するご意見やご要望をお書きください..." style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; resize: vertical; min-height: 60px; box-sizing: border-box;"></textarea>
+                </div>
+                
+                <button id="submitFeedbackBtn" style="background: #667eea; color: white; border: none; padding: 10px 20px; border-radius: 6px; font-size: 14px; cursor: pointer; transition: all 0.2s;">
+                    📤 フィードバックを送信
+                </button>
+                <div id="feedbackStatus" style="margin-top: 10px; font-size: 13px;"></div>
+            </div>
+        </div>
+
+        <!-- デフォルトレベル設定セクション -->
+        <div style="background: rgba(108, 117, 125, 0.1); padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #6c757d;">
+            <h4 style="margin: 0 0 10px 0; color: #6c757d;">📌 デフォルトレベル設定</h4>
+            <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <label style="font-size: 14px; color: #495057; margin-bottom: 0;">現在のデフォルト:</label>
+                    <span id="currentDefaultLevel" style="background: #28a745; color: white; padding: 4px 8px; border-radius: 12px; font-size: 12px; font-weight: 600;">レベル 3</span>
+                </div>
+                <button id="setDefaultBtn" style="background: #6c757d; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 14px; cursor: pointer; transition: all 0.2s;">
+                    📌 現在のレベルをデフォルトに設定
+                </button>
+                <button id="resetDefaultBtn" style="background: #dc3545; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 14px; cursor: pointer; transition: all 0.2s;">
+                    🔄 デフォルトをリセット (レベル3)
+                </button>
+            </div>
+            <div id="defaultLevelInfo" style="margin-top: 10px; font-size: 13px; color: #28a745;"></div>
         </div>
         
         <div style="background: rgba(40, 167, 69, 0.1); padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #28a745;">
