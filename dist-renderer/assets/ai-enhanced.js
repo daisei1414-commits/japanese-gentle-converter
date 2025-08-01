@@ -169,6 +169,26 @@ class AIEnhancedConversionEngine {
       
       console.log(`📡 Calling AI API: ${apiUrl}`);
       
+      // First test if the API endpoint is reachable
+      try {
+        console.log('🧪 Testing API endpoint connectivity...');
+        const testResponse = await fetch(`${apiUrl}/api/test`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+        
+        if (testResponse.ok) {
+          const testData = await testResponse.json();
+          console.log('✅ API endpoint test successful:', testData);
+        } else {
+          console.warn('⚠️ API endpoint test failed:', testResponse.status);
+        }
+      } catch (testError) {
+        console.warn('⚠️ API endpoint test error:', testError.message);
+      }
+      
       const response = await fetch(`${apiUrl}/api/convert`, {
         method: 'POST',
         headers: {
