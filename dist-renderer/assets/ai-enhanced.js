@@ -35,13 +35,19 @@ class AIEnhancedConversionEngine {
 
   initializeComponents() {
     try {
-      // Initialize AI components if available
-      if (modules.AITextConverter) {
+      // Check for API keys
+      const anthropicKey = localStorage.getItem('anthropic_api_key');
+      const openaiKey = localStorage.getItem('openai_api_key');
+      
+      // Initialize AI components if available and API keys exist
+      if (modules.AITextConverter && (anthropicKey || openaiKey)) {
         this.aiConverter = new modules.AITextConverter();
         this.realTimeConverter = new modules.RealTimeConverter(this.aiConverter);
         this.isAIEnabled = true;
+        console.log('🤖 AI components initialized with API keys');
       } else {
         this.isAIEnabled = false;
+        console.log('🔄 AI components not available or no API keys found');
       }
       
       this.feedbackLearning = new modules.FeedbackLearning();
@@ -232,41 +238,71 @@ class AIEnhancedConversionEngine {
     const configHtml = `
       <div id="api-config-panel" style="display: none; position: fixed; top: 50%; left: 50%; 
         transform: translate(-50%, -50%); background: white; border-radius: 12px; 
-        padding: 20px; box-shadow: 0 8px 32px rgba(0,0,0,0.2); z-index: 2000; min-width: 400px;">
-        <h3 style="margin: 0 0 15px 0; color: #333;">🔑 API設定</h3>
-        <div style="margin-bottom: 15px;">
-          <label style="display: block; margin-bottom: 5px; font-weight: 600;">Anthropic API Key:</label>
-          <input type="password" id="anthropic-key" placeholder="sk-ant-..." 
-            style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+        padding: 25px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); z-index: 2000; min-width: 450px; max-width: 90vw;">
+        <h3 style="margin: 0 0 20px 0; color: #333; font-size: 18px;">🔑 API キー設定</h3>
+        <div style="margin-bottom: 18px;">
+          <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #495057;">Anthropic Claude API Key:</label>
+          <input type="password" id="anthropic-key" placeholder="sk-ant-api03-..." 
+            style="width: 100%; padding: 12px; border: 2px solid #e1e5e9; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
+          <div style="font-size: 12px; color: #6c757d; margin-top: 4px;">
+            Claude Sonnet/Haiku用のAPIキー
+          </div>
         </div>
-        <div style="margin-bottom: 15px;">
-          <label style="display: block; margin-bottom: 5px; font-weight: 600;">OpenAI API Key:</label>
+        <div style="margin-bottom: 18px;">
+          <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #495057;">OpenAI API Key:</label>
           <input type="password" id="openai-key" placeholder="sk-..." 
-            style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+            style="width: 100%; padding: 12px; border: 2px solid #e1e5e9; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
+          <div style="font-size: 12px; color: #6c757d; margin-top: 4px;">
+            ChatGPT-4/3.5用のAPIキー
+          </div>
         </div>
-        <div style="display: flex; gap: 10px;">
-          <button id="save-api-keys" style="flex: 1; background: #28a745; color: white; 
-            border: none; padding: 10px; border-radius: 6px; font-weight: 600;">保存</button>
+        <div style="background: rgba(102, 126, 234, 0.1); padding: 12px; border-radius: 6px; margin-bottom: 20px; font-size: 13px; color: #495057;">
+          💡 <strong>ヒント:</strong> どちらか一つのキーを入力するだけでAI機能が使用できます。複数設定した場合は自動的にフォールバックします。
+        </div>
+        <div style="display: flex; gap: 12px;">
+          <button id="save-api-keys" style="flex: 1; background: linear-gradient(135deg, #28a745, #20c997); color: white; 
+            border: none; padding: 12px 20px; border-radius: 6px; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s;">
+            💾 保存して有効化
+          </button>
           <button id="close-api-config" style="flex: 1; background: #6c757d; color: white; 
-            border: none; padding: 10px; border-radius: 6px; font-weight: 600;">閉じる</button>
+            border: none; padding: 12px 20px; border-radius: 6px; font-weight: 600; font-size: 14px; cursor: pointer; transition: all 0.2s;">
+            ❌ キャンセル
+          </button>
         </div>
       </div>
       <div id="api-config-overlay" style="display: none; position: fixed; top: 0; left: 0; 
-        width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1999;"></div>
+        width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1999;"></div>
     `;
     
     document.body.insertAdjacentHTML('beforeend', configHtml);
     
     // Add event handlers
     document.getElementById('save-api-keys').addEventListener('click', () => {
-      const anthropicKey = document.getElementById('anthropic-key').value;
-      const openaiKey = document.getElementById('openai-key').value;
+      const anthropicKey = document.getElementById('anthropic-key').value.trim();
+      const openaiKey = document.getElementById('openai-key').value.trim();
       
-      if (anthropicKey) localStorage.setItem('anthropic_api_key', anthropicKey);
-      if (openaiKey) localStorage.setItem('openai_api_key', openaiKey);
+      // Validate that at least one key is provided
+      if (!anthropicKey && !openaiKey) {
+        this.showNotification('⚠️ 少なくとも一つのAPIキーを入力してください', 'warning');
+        return;
+      }
+      
+      // Save keys to localStorage
+      let savedKeys = [];
+      if (anthropicKey) {
+        localStorage.setItem('anthropic_api_key', anthropicKey);
+        savedKeys.push('Anthropic Claude');
+      }
+      if (openaiKey) {
+        localStorage.setItem('openai_api_key', openaiKey);
+        savedKeys.push('OpenAI GPT');
+      }
       
       this.closeAPIConfig();
       this.reinitializeAI();
+      
+      // Show success notification
+      this.showNotification(`✅ APIキーが保存されました (${savedKeys.join(', ')})`, 'success');
     });
     
     document.getElementById('close-api-config').addEventListener('click', () => {
@@ -509,10 +545,19 @@ class AIEnhancedConversionEngine {
 
   reinitializeAI() {
     try {
-      this.initializeComponents();
-      if (this.isAIEnabled) {
+      // Check if we have any API keys
+      const anthropicKey = localStorage.getItem('anthropic_api_key');
+      const openaiKey = localStorage.getItem('openai_api_key');
+      
+      if (anthropicKey || openaiKey) {
+        this.initializeComponents();
+        this.isAIEnabled = true;
         this.updateAIStatus('active');
         console.log('✅ AI components reinitialized successfully');
+      } else {
+        this.isAIEnabled = false;
+        this.updateAIStatus('fallback');
+        console.log('⚠️ No API keys found, using fallback mode');
       }
     } catch (error) {
       console.error('AI reinitialization failed:', error);
@@ -593,6 +638,42 @@ class AIEnhancedConversionEngine {
     if (analysis?.processingTime) {
       console.log(`⚡ Conversion completed in ${analysis.processingTime}ms`);
     }
+  }
+
+  /**
+   * Show notification to user
+   */
+  showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    const colors = {
+      success: '#28a745',
+      warning: '#ffc107',
+      error: '#dc3545',
+      info: '#007bff'
+    };
+    
+    notification.innerHTML = message;
+    notification.style.cssText = `
+      position: fixed; top: 20px; right: 20px; z-index: 3000;
+      background: ${colors[type] || colors.info}; color: white;
+      padding: 12px 20px; border-radius: 8px; font-weight: 600;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+      transform: translateX(100%); transition: transform 0.3s ease;
+      max-width: 350px; font-size: 14px;
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Animate in
+    setTimeout(() => {
+      notification.style.transform = 'translateX(0)';
+    }, 100);
+    
+    // Remove after delay
+    setTimeout(() => {
+      notification.style.transform = 'translateX(100%)';
+      setTimeout(() => notification.remove(), 300);
+    }, 3000);
   }
 }
 
