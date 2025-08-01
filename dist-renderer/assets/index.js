@@ -511,11 +511,17 @@ document.addEventListener('DOMContentLoaded', function() {
       
       // Show AI feedback panel if using AI
       if (window.aiEngine && result.provider !== 'fallback') {
+        console.log('🎯 Triggering feedback panel for result:', result.provider);
         setTimeout(() => {
           if (window.aiEngine.showFeedbackPanel) {
+            console.log('📋 Showing feedback panel...');
             window.aiEngine.showFeedbackPanel(result);
+          } else {
+            console.warn('⚠️ showFeedbackPanel method not found');
           }
-        }, 1000);
+        }, 2000);
+      } else {
+        console.log('ℹ️ Feedback panel not shown - provider:', result.provider);
       }
       
     } catch (error) {

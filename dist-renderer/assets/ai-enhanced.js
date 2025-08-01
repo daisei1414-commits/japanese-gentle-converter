@@ -581,48 +581,70 @@ APIキー状況: ${anthropicKey ? 'Anthropic ✓' : ''} ${openaiKey ? 'OpenAI �
   }
 
   setupFeedbackHandlers() {
-    // Star rating
-    const stars = document.querySelectorAll('.star');
+    // Store reference to this for use in event handlers
+    const self = this;
     let selectedRating = 0;
     
-    stars.forEach(star => {
-      star.addEventListener('click', () => {
-        selectedRating = parseInt(star.dataset.rating);
-        this.updateStarRating(selectedRating);
+    // Add debug logging
+    console.log('🔧 Setting up feedback handlers...');
+    
+    // Wait for DOM to ensure elements exist
+    setTimeout(() => {
+      // Star rating
+      const stars = document.querySelectorAll('.star');
+      console.log('⭐ Found', stars.length, 'stars');
+      
+      stars.forEach((star, index) => {
+        star.addEventListener('click', (e) => {
+          selectedRating = parseInt(star.dataset.rating);
+          console.log('⭐ Star clicked:', selectedRating);
+          self.updateStarRating(selectedRating);
+          e.preventDefault();
+        });
+        
+        star.addEventListener('mouseenter', () => {
+          const rating = parseInt(star.dataset.rating);
+          self.highlightStars(rating);
+        });
       });
       
-      star.addEventListener('mouseenter', () => {
-        const rating = parseInt(star.dataset.rating);
-        this.highlightStars(rating);
-      });
-    });
-    
-    const ratingStars = document.getElementById('rating-stars');
-    if (ratingStars) {
-      ratingStars.addEventListener('mouseleave', () => {
-        this.updateStarRating(selectedRating);
-      });
-    }
-    
-    // Submit feedback
-    const submitBtn = document.getElementById('submit-feedback');
-    if (submitBtn) {
-      submitBtn.addEventListener('click', () => {
-        if (selectedRating > 0) {
-          const correctionText = document.getElementById('user-correction');
-          this.submitFeedback(selectedRating, correctionText ? correctionText.value : '');
-        } else {
-          this.showNotification('⚠️ 評価を選択してください', 'warning');
-        }
-      });
-    }
-    
-    const skipBtn = document.getElementById('skip-feedback');
-    if (skipBtn) {
-      skipBtn.addEventListener('click', () => {
-        this.hideFeedbackPanel();
-      });
-    }
+      const ratingStars = document.getElementById('rating-stars');
+      if (ratingStars) {
+        ratingStars.addEventListener('mouseleave', () => {
+          self.updateStarRating(selectedRating);
+        });
+      }
+      
+      // Submit feedback
+      const submitBtn = document.getElementById('submit-feedback');
+      console.log('📤 Submit button found:', !!submitBtn);
+      if (submitBtn) {
+        submitBtn.addEventListener('click', (e) => {
+          console.log('📤 Submit button clicked, rating:', selectedRating);
+          e.preventDefault();
+          
+          if (selectedRating > 0) {
+            const correctionText = document.getElementById('user-correction');
+            const correction = correctionText ? correctionText.value : '';
+            console.log('📝 Submitting feedback:', selectedRating, correction);
+            self.submitFeedback(selectedRating, correction);
+          } else {
+            self.showNotification('⚠️ 評価を選択してください', 'warning');
+          }
+        });
+      }
+      
+      const skipBtn = document.getElementById('skip-feedback');
+      console.log('⏭️ Skip button found:', !!skipBtn);
+      if (skipBtn) {
+        skipBtn.addEventListener('click', (e) => {
+          console.log('⏭️ Skip button clicked');
+          e.preventDefault();
+          self.hideFeedbackPanel();
+        });
+      }
+      
+    }, 100);
   }
 
   addRealTimeIndicators() {
@@ -864,15 +886,20 @@ APIキー状況: ${anthropicKey ? 'Anthropic ✓' : ''} ${openaiKey ? 'OpenAI �
 
   updateStarRating(rating) {
     const stars = document.querySelectorAll('.star');
+    console.log('🌟 Updating stars to rating:', rating, 'Found stars:', stars.length);
     stars.forEach((star, index) => {
-      star.textContent = index < rating ? '⭐' : '☆';
+      const shouldFill = index < rating;
+      star.textContent = shouldFill ? '⭐' : '☆';
+      star.style.opacity = shouldFill ? '1' : '0.3';
     });
   }
 
   highlightStars(rating) {
     const stars = document.querySelectorAll('.star');
     stars.forEach((star, index) => {
-      star.textContent = index < rating ? '⭐' : '☆';
+      const shouldHighlight = index < rating;
+      star.textContent = shouldHighlight ? '⭐' : '☆';
+      star.style.opacity = shouldHighlight ? '1' : '0.3';
     });
   }
 
