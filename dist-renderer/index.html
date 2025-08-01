@@ -189,6 +189,12 @@
         </div>
 
         <button class="convert-btn" onclick="convertText()">✨ 変換する (Ctrl/Cmd + Enter) ✨</button>
+
+        <div class="output-section">
+            <label for="outputText">🌟 変換後の文章:</label>
+            <textarea id="outputText" readonly placeholder="変換結果がここに表示されます..."></textarea>
+            <button class="copy-btn" onclick="copyToClipboard()" style="display: none;" id="copyBtn">📋 コピー</button>
+        </div>
         
         <div style="background: rgba(40, 167, 69, 0.1); padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #28a745;">
             <h4 style="margin: 0 0 10px 0; color: #28a745;">⌨️ グローバルキーボードショートカット</h4>
@@ -202,17 +208,11 @@
                 </p>
             </div>
         </div>
-
-        <div class="output-section">
-            <label for="outputText">🌟 変換後の文章:</label>
-            <textarea id="outputText" readonly placeholder="変換結果がここに表示されます..."></textarea>
-            <button class="copy-btn" onclick="copyToClipboard()" style="display: none;" id="copyBtn">📋 コピー</button>
-        </div>
         
         <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e1e5e9; color: #6c757d; font-size: 12px;">
-            <p>Japanese Gentle Converter v2.1.0 | Enhanced Intelligent Conversion System</p>
-            <p>🧠 Context Analysis • 📝 Word-Level Conversion • 🌟 Natural Generation • ✅ Complete Polite Unification</p>
-            <p style="margin-top: 10px;">© 2024 - 文脈を理解して自然な敬語に変換</p>
+            <p>Japanese Gentle Converter v3.0.0 | AI-Powered Japanese Text Conversion System</p>
+            <p>🤖 LLM Integration • 🧠 Context Analysis • 📝 Quality Assessment • 🌟 Real-time Learning</p>
+            <p style="margin-top: 10px;">© 2024 - AI搭載で文脈を理解した自然な敬語変換</p>
         </div>
     </div>
 

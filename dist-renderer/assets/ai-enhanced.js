@@ -131,31 +131,172 @@ class AIEnhancedConversionEngine {
   }
 
   /**
-   * Perform AI conversion (simplified implementation)
+   * Perform AI conversion using actual LLM APIs
    */
   async performAIConversion(originalText, options) {
-    // For now, return enhanced rule-based conversion with AI-like improvements
-    // In production, this would call actual LLM APIs
-    const enhancedResult = await this.legacyConverter.convertText(originalText, options);
+    const anthropicKey = localStorage.getItem('anthropic_api_key');
+    const openaiKey = localStorage.getItem('openai_api_key');
     
-    return {
-      ...enhancedResult,
-      provider: 'ai-enhanced',
-      confidence: Math.min(0.95, enhancedResult.analysis.confidence + 0.1),
-      metadata: {
-        ...enhancedResult.metadata,
-        engine: 'ai-enhanced-v3.0',
-        features: [...enhancedResult.metadata.features, 'ai-processing', 'context-aware']
+    // Try Anthropic Claude first
+    if (anthropicKey) {
+      try {
+        console.log('🤖 Using Claude API for conversion...');
+        const result = await this.callClaudeAPI(originalText, options, anthropicKey);
+        return result;
+      } catch (error) {
+        console.warn('Claude API failed:', error.message);
+      }
+    }
+    
+    // Try OpenAI GPT if Claude fails or isn't available
+    if (openaiKey) {
+      try {
+        console.log('🤖 Using OpenAI API for conversion...');
+        const result = await this.callOpenAIAPI(originalText, options, openaiKey);
+        return result;
+      } catch (error) {
+        console.warn('OpenAI API failed:', error.message);
+      }
+    }
+    
+    // If all AI attempts fail, throw error to trigger fallback
+    throw new Error('All AI providers failed');
+  }
+
+  /**
+   * Call Claude API for text conversion
+   */
+  async callClaudeAPI(originalText, options, apiKey) {
+    const level = options.level || 3;
+    const prompt = this.buildConversionPrompt(originalText, level);
+    
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01'
       },
-      suggestions: [
-        ...enhancedResult.suggestions,
-        {
-          type: 'ai_enhancement',
-          message: 'AI処理により自然な表現に調整されました',
-          priority: 'info'
-        }
-      ]
+      body: JSON.stringify({
+        model: 'claude-3-haiku-20240307',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: prompt
+        }]
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Claude API error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const convertedText = data.content[0].text.trim();
+
+    return {
+      original: originalText,
+      converted: convertedText,
+      provider: 'claude',
+      confidence: 0.92,
+      analysis: {
+        processingTime: Date.now(),
+        confidence: 0.92,
+        improvements: ['AI自然語処理', '文脈理解', '敬語最適化']
+      },
+      metadata: {
+        timestamp: new Date().toISOString(),
+        engine: 'claude-3-haiku',
+        version: '3.0.0',
+        features: ['llm-processing', 'context-aware', 'natural-generation']
+      },
+      suggestions: [{
+        type: 'ai_success',
+        message: 'Claude AIにより自然な敬語表現に変換されました',
+        priority: 'info'
+      }]
     };
+  }
+
+  /**
+   * Call OpenAI API for text conversion
+   */
+  async callOpenAIAPI(originalText, options, apiKey) {
+    const level = options.level || 3;
+    const prompt = this.buildConversionPrompt(originalText, level);
+    
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'gpt-3.5-turbo',
+        messages: [{
+          role: 'user',
+          content: prompt
+        }],
+        max_tokens: 1000,
+        temperature: 0.3
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const convertedText = data.choices[0].message.content.trim();
+
+    return {
+      original: originalText,
+      converted: convertedText,
+      provider: 'openai',
+      confidence: 0.90,
+      analysis: {
+        processingTime: Date.now(),
+        confidence: 0.90,
+        improvements: ['AI自然語処理', '文脈理解', '敬語最適化']
+      },
+      metadata: {
+        timestamp: new Date().toISOString(),
+        engine: 'gpt-3.5-turbo',
+        version: '3.0.0',
+        features: ['llm-processing', 'context-aware', 'natural-generation']
+      },
+      suggestions: [{
+        type: 'ai_success',
+        message: 'ChatGPT AIにより自然な敬語表現に変換されました',
+        priority: 'info'
+      }]
+    };
+  }
+
+  /**
+   * Build conversion prompt for AI
+   */
+  buildConversionPrompt(originalText, level) {
+    const levelDescriptions = {
+      1: '基本的な丁寧語',
+      2: '気遣いのある表現',
+      3: '温かみのある敬語',
+      4: '絵文字を含む親しみやすい敬語',
+      5: '非常に温かく親しみやすい表現'
+    };
+
+    return `以下の日本語テキストを${levelDescriptions[level]}に変換してください。変換されたテキストのみを出力してください。
+
+元のテキスト: ${originalText}
+
+変換要件:
+- レベル${level}: ${levelDescriptions[level]}
+- 自然で読みやすい日本語
+- 文脈に適した敬語表現
+- 過度に長くならないよう簡潔に
+${level >= 4 ? '- 適度に絵文字を使用' : ''}
+
+変換後のテキスト:`;
   }
 
   /**
@@ -425,22 +566,32 @@ APIキー状況: ${anthropicKey ? 'Anthropic ✓' : ''} ${openaiKey ? 'OpenAI �
       });
     });
     
-    document.getElementById('rating-stars').addEventListener('mouseleave', () => {
-      this.updateStarRating(selectedRating);
-    });
+    const ratingStars = document.getElementById('rating-stars');
+    if (ratingStars) {
+      ratingStars.addEventListener('mouseleave', () => {
+        this.updateStarRating(selectedRating);
+      });
+    }
     
     // Submit feedback
-    document.getElementById('submit-feedback').addEventListener('click', () => {
-      if (selectedRating > 0) {
-        this.submitFeedback(selectedRating, document.getElementById('user-correction').value);
-      } else {
-        alert('評価を選択してください');
-      }
-    });
+    const submitBtn = document.getElementById('submit-feedback');
+    if (submitBtn) {
+      submitBtn.addEventListener('click', () => {
+        if (selectedRating > 0) {
+          const correctionText = document.getElementById('user-correction');
+          this.submitFeedback(selectedRating, correctionText ? correctionText.value : '');
+        } else {
+          this.showNotification('⚠️ 評価を選択してください', 'warning');
+        }
+      });
+    }
     
-    document.getElementById('skip-feedback').addEventListener('click', () => {
-      this.hideFeedbackPanel();
-    });
+    const skipBtn = document.getElementById('skip-feedback');
+    if (skipBtn) {
+      skipBtn.addEventListener('click', () => {
+        this.hideFeedbackPanel();
+      });
+    }
   }
 
   addRealTimeIndicators() {
